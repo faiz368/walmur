@@ -32,10 +32,10 @@ class AksesLog
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
             // Audit log tidak boleh menjatuhkan login wali murid: kalau tabelnya
             // belum ada atau DB sedang Bermasalah, login tetap berjalan.
-            report($_);
+            report($e);
         }
     }
 }
