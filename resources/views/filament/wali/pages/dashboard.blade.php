@@ -4,13 +4,13 @@
 
 <x-filament-panels::page>
     {{-- Header Dashboard --}}
-    <div class="flex items-center justify-between border-b border-gray-200/80 pb-3 mb-6">
-        <div>
-            <h1 class="text-lg font-extrabold uppercase tracking-tight text-navy-900">Pondok Tahfizh Plus Abu Dzar</h1>
-            <p class="text-xs font-bold uppercase tracking-wide text-olive-600">Bidang Kesiswaan &amp; Kesantrian</p>
+    <div class="flex items-center justify-between gap-3 border-b border-gray-200/80 pb-3 mb-6">
+        <div class="min-w-0">
+            <h1 class="text-base font-extrabold uppercase tracking-tight text-navy-900 sm:text-lg">Pondok Tahfizh Plus Abu Dzar</h1>
+            <p class="text-[11px] font-bold uppercase tracking-wide text-olive-600 sm:text-xs">Bidang Kesiswaan &amp; Kesantrian</p>
         </div>
 
-        <div class="hidden text-right text-xs text-gray-500 sm:block">
+        <div class="hidden shrink-0 text-right text-xs text-gray-500 sm:block">
             <span class="inline-block rounded-full border border-olive-200 bg-olive-50 px-3 py-1 text-center font-extrabold leading-tight text-olive-700">
                 Laporan Resmi<br>Wali Santri
             </span>
@@ -18,7 +18,7 @@
     </div>
 
     {{-- Filter periode --}}
-    <div class="mb-6 space-y-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+    <div class="mb-6 space-y-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
         <div class="flex flex-wrap items-center justify-between gap-2">
             <h4 class="wali-section-title">
                 <x-heroicon-m-funnel class="h-4 w-4 text-olive-500" />
@@ -38,7 +38,7 @@
             @endif
         </div>
 
-        <div class="grid grid-cols-1 gap-3 text-xs sm:grid-cols-4">
+        <div class="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2 lg:grid-cols-4">
             <div>
                 <label class="mb-1 block font-bold text-gray-700" for="wali-semester">Semester</label>
                 <select id="wali-semester" wire:model.live="semester"
@@ -90,7 +90,7 @@
     <div class="wali-identitas mb-6 text-xs">
         <div>
             <span class="wali-identitas-label">Nama Lengkap Santri</span>
-            <h4 class="wali-identitas-nilai text-olive-400">{{ $santri->nama_lengkap }}</h4>
+            <h4 class="wali-identitas-nilai text-olive-400 break-words">{{ $santri->nama_lengkap }}</h4>
         </div>
         <div>
             <span class="wali-identitas-label">NIS / Nomor Induk</span>

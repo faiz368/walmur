@@ -4,7 +4,7 @@
 
 <x-filament-panels::page>
     {{-- Toolbar cetak --}}
-    <div class="mb-6 flex flex-col items-center justify-between gap-4 rounded-2xl border border-navy-800 bg-navy-900 p-4 text-white shadow-xl sm:flex-row">
+    <div class="wali-toolbar-cetak mb-6 flex flex-col items-center justify-between gap-4 rounded-2xl border border-navy-800 bg-navy-900 p-4 text-white shadow-xl sm:flex-row">
         <div class="flex items-center gap-3">
             <x-heroicon-m-arrow-left-circle class="h-6 w-6 text-slate-300" />
             <div>
@@ -31,7 +31,7 @@
 
     {{-- Filter. Tab rapor hanya punya semester, filter periode tidak berlaku --}}
     @if ($tabAktif === 'rapor')
-        <div class="mb-6 space-y-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div class="mb-6 space-y-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
             <div class="grid grid-cols-1 gap-3 text-xs sm:grid-cols-4">
                 <div>
                     <label class="mb-1 block font-bold text-gray-700" for="lp-semester-rapor">Semester</label>
@@ -56,7 +56,7 @@
             </p>
         </div>
     @else
-    <div class="mb-6 space-y-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+    <div class="mb-6 space-y-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
         <div class="grid grid-cols-1 gap-3 text-xs sm:grid-cols-4">
             <div>
                 <label class="mb-1 block font-bold text-gray-700" for="lp-semester">Semester</label>
@@ -103,7 +103,7 @@
 
     {{-- Pemilih tab. Diletakkan di luar dokumen supaya tetap bisa berpindah
          tab saat dokumen Rapor Bayangan yang sedang tampil --}}
-    <div class="wali-tab-head no-print mb-4">
+    <div class="wali-tab-head no-print mb-4 overflow-x-auto" style="-webkit-overflow-scrolling:touch;scrollbar-width:none;">
         <button type="button" wire:click="$set('tabAktif', 'kbm')"
             @class(['wali-tab', $tabAktif === 'kbm' ? 'wali-tab-aktif' : 'wali-tab-nonaktif'])>
             <x-heroicon-m-book-open class="h-4 w-4" />
@@ -541,14 +541,14 @@
         </div>
 
         {{-- Tanda tangan --}}
-        <div class="flex items-start justify-between border-t border-gray-200 pt-8 text-xs text-gray-800">
-            <div class="w-64 text-center">
+        <div class="flex flex-col items-center gap-6 border-t border-gray-200 pt-8 text-xs text-gray-800 sm:flex-row sm:items-start sm:justify-between">
+            <div class="w-full text-center sm:w-64">
                 <p class="font-bold">Orang Tua / Wali Santri,</p>
                 <div class="h-16"></div>
                 <p class="whitespace-nowrap font-bold text-navy-900">( ................................................. )</p>
             </div>
 
-            <div class="w-64 text-center">
+            <div class="w-full text-center sm:w-64">
                 <p class="text-gray-600">{{ $tanggalCetak }}</p>
                 <p class="mt-0.5 font-bold">Wali Kelas</p>
                 <div class="h-16"></div>

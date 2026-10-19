@@ -99,7 +99,7 @@
     }
 
     .wali-login-card {
-        @apply rounded-2xl border border-gray-200 bg-white p-6 shadow-sm;
+        @apply rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6;
     }
 
     .wali-login-label {
@@ -150,33 +150,59 @@
 
 .fi-topbar {
     display: flex !important;
-    height: 4rem !important;
+    flex-wrap: wrap !important;
     min-height: 4rem !important;
-    max-height: 4rem !important;
     width: 100% !important;
     align-items: center !important;
     justify-content: space-between !important;
     padding-left: 1.5rem !important;
-    padding-right: 2.5rem !important;
+    padding-right: 1.5rem !important;
     background-color: #ffffff !important;
     box-sizing: border-box !important;
 }
 
+/* Di desktop, paksa topbar hanya 4rem tinggi */
+@media (min-width: 1024px) {
+    .fi-topbar {
+        height: 4rem !important;
+        max-height: 4rem !important;
+    }
+}
+
+/*
+ | Struktur topbar (sidebar mode, bukan topNavigation):
+ |
+ | <nav class="fi-topbar">                   ← flex container
+ |   [hamburger open btn]                   ← flex item pertama
+ |   [hamburger close btn]
+ |   <div class="fi-topbar-start">          ← logo
+ |   <div class="fi-topbar-end">            ← tombol keluar (margin-left:auto)
+ | </nav>
+ */
 .fi-topbar-start {
     display: flex !important;
     align-items: center !important;
     height: 100% !important;
-    gap: 1.5rem !important;
+    gap: 0.75rem !important;
+    flex: 1 !important;              /* biar mengisi sisa ruang setelah hamburger */
+    min-width: 0 !important;
 }
 
 .fi-topbar-end {
     display: flex !important;
     align-items: center !important;
     height: 100% !important;
-    margin-left: auto !important;
-    padding-right: 1rem !important;
+    flex-shrink: 0 !important;       /* jangan pernah menyusut menimpa elemen lain */
     gap: 0.75rem !important;
 }
+
+/*
+ | Navigasi — Sidebar Mode
+ |
+ | topNavigation() dihapus → Filament memakai sidebar.
+ | Desktop : sidebar collapsible di sisi kiri.
+ | Mobile  : hamburger di topbar → sidebar muncul sebagai overlay drawer.
+ */
 
 .fi-user-menu {
     display: inline-flex !important;
@@ -435,4 +461,594 @@
 @page {
     size: A4;
     margin: 12mm 15mm;
+}
+
+/*
+ | Hamburger bawaan Filament disembunyikan — navigasi mobile memakai
+ | drawer kustom (.wali-mobile-nav, lihat komponen mobile-nav.blade.php).
+ */
+.fi-topbar-open-sidebar-btn,
+.fi-topbar-close-sidebar-btn {
+    display: none !important;
+}
+
+/* Sidebar bawaan Filament tidak dipakai di panel ini (topNavigation aktif) */
+.fi-sidebar {
+    display: none !important;
+}
+
+/* ── Desktop (≥ 1024px) ── */
+@media (min-width: 1024px) {
+    .fi-topbar {
+        height: 4rem !important;
+        max-height: 4rem !important;
+        padding-left: 1.5rem !important;
+        padding-right: 1.5rem !important;
+    }
+}
+
+/*
+  | ============================================================================
+  |  Tampilan Mobile — Responsif Profesional
+  |
+  |  Strategi:
+  |   1. Topbar → sticky 3.5rem, tombol hamburger kustom di kiri.
+  |   2. Navigasi → drawer kustom (.wali-drawer) dari kiri, tap luar/Esc menutup.
+  |   3. Konten halaman → padding lebih kecil, tidak overflow.
+  |   4. Tabel → sticky kolom pertama + scroll horizontal halus.
+  |   5. Laporan rapor A4 → di-scale mengikuti lebar layar.
+  |   6. Toolbar cetak → stack vertikal di layar sempit.
+  | ============================================================================
+  */
+
+/* ── Global: cegah overflow horizontal ── */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+html {
+    /* Jangan overflow-x:hidden di sini — bisa memblokir click event
+       dan mengganggu Alpine.js event delegation */
+    max-width: 100%;
+    overflow-x: clip;  /* clip tidak memblokir events, berbeda dengan hidden */
+}
+
+body {
+    /* overflow-x:hidden pada body memblokir click di tepi layar —
+       diganti clip agar safe-area dan touch tetap berfungsi */
+    max-width: 100%;
+    overflow-x: clip;
+}
+
+.fi-main {
+    max-width: 100% !important;
+}
+
+.fi-page-header,
+.fi-page-content {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+}
+
+.wali-rapor-sheet {
+    max-width: 100%;
+}
+
+/* ── Mobile (< 1024px) ── */
+@media (max-width: 1023px) {
+
+    /* App bar: sisakan ruang di kiri untuk tombol hamburger */
+    .fi-topbar {
+        padding-left: 3.5rem !important;
+        padding-right: 0.875rem !important;
+        height: 3.5rem !important;
+        min-height: 3.5rem !important;
+        max-height: 3.5rem !important;
+        flex-wrap: nowrap !important;
+        gap: 0.5rem !important;
+    }
+
+    /* Logo brand lebih ringkas di mobile */
+    .fi-topbar .fi-logo {
+        height: 2.25rem !important;
+        width: auto !important;
+    }
+
+    /* Navigasi topbar (pill/tab) diganti drawer kustom di mobile */
+    .fi-topbar-nav-groups {
+        display: none !important;
+    }
+
+    /* Padding konten */
+    .fi-page-header {
+        padding-left: 0.875rem !important;
+        padding-right: 0.875rem !important;
+        padding-top: 1rem !important;
+    }
+
+    .fi-page-content {
+        padding-left: 0.875rem !important;
+        padding-right: 0.875rem !important;
+        padding-top: 0.5rem !important;
+    }
+
+    /* Tabel: scroll horizontal halus */
+    .overflow-x-auto {
+        -webkit-overflow-scrolling: touch !important;
+        overscroll-behavior-x: contain !important;
+        border-radius: 0.75rem !important;
+    }
+
+    /* Sticky kolom pertama tabel */
+    .overflow-x-auto table td:first-child,
+    .overflow-x-auto table th:first-child {
+        position: sticky !important;
+        left: 0 !important;
+        z-index: 1 !important;
+        background: inherit !important;
+        box-shadow: 2px 0 6px -1px rgba(0,0,0,0.06) !important;
+    }
+
+    /* Lembar rapor A4 */
+    .wali-rapor-sheet {
+        width: 100%;
+        min-height: 0;
+        padding: 5mm 4mm;
+        font-size: 10px;
+        border-radius: 1rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+
+    .wali-rapor-sheet table {
+        table-layout: fixed;
+        width: 100%;
+    }
+
+    .wali-rapor-sheet th,
+    .wali-rapor-sheet td {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .wali-rapor-table th,
+    .wali-rapor-table td {
+        padding: 3px 4px;
+        font-size: 9px;
+    }
+
+    .wali-rapor-grid-dua {
+        grid-template-columns: 1fr;
+    }
+
+    .wali-rapor-ttd {
+        gap: 0.25rem;
+        font-size: 0.6rem;
+    }
+}
+
+/* ── Smartphone kecil (≤ 480px) ── */
+@media (max-width: 480px) {
+
+    .fi-topbar .fi-logo {
+        height: 2rem !important;
+    }
+
+    .fi-page-header,
+    .fi-page-content {
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+    }
+
+    .wali-page-title {
+        font-size: 1.125rem !important;
+    }
+
+    .wali-identitas-nilai {
+        font-size: 0.8125rem !important;
+    }
+
+    .wali-toolbar-cetak {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    .wali-tab {
+        padding-left: 0.625rem !important;
+        padding-right: 0.625rem !important;
+        font-size: 0.6875rem !important;
+    }
+
+    .wali-btn-laporan {
+        width: 100% !important;
+    }
+}
+
+/* ── Toolbar cetak (≤ 640px) ── */
+@media (max-width: 640px) {
+    .wali-kop {
+        flex-direction: column !important;
+        gap: 0.75rem !important;
+        align-items: flex-start !important;
+    }
+
+    .wali-kop-judul {
+        font-size: 0.875rem !important;
+    }
+
+    .wali-kop-subjudul {
+        font-size: 0.75rem !important;
+    }
+
+    .wali-tab-head {
+        gap: 0.375rem !important;
+        padding-bottom: 0.5rem !important;
+    }
+
+    .flex.items-start.justify-between.border-t.border-gray-200 {
+        flex-direction: column !important;
+        gap: 1.5rem !important;
+    }
+
+    .flex.items-start.justify-between.border-t.border-gray-200 > div {
+        width: 100% !important;
+        text-align: center !important;
+    }
+}
+
+/* ── Kartu laporan pekanan (≤ 768px) ── */
+@media (max-width: 768px) {
+    .wali-dokumen {
+        padding: 1rem !important;
+        border-radius: 1.25rem !important;
+    }
+}
+
+/*
+ | ════════════════════════════════════════════════════════════════════════════
+ |  Drawer Navigasi Mobile (kustom)
+ |
+ |  Komponen: resources/views/filament/wali/components/mobile-nav.blade.php
+ |  Hanya tampil di < 1024px — desktop memakai top navigation Filament.
+ | ════════════════════════════════════════════════════════════════════════════
+ */
+
+/* Kunci scroll halaman saat drawer terbuka */
+body.wali-nav-locked {
+    overflow: hidden !important;
+}
+
+/* ── Tombol hamburger (fixed, sejajar app bar) ── */
+.wali-hamburger-btn {
+    position: fixed !important;
+    top: calc(env(safe-area-inset-top, 0px) + 0.375rem) !important;
+    left: 0.5rem !important;
+    z-index: 40 !important;
+    display: inline-flex;
+    /* display sengaja TANPA !important agar x-show Alpine bisa menyembunyikan */
+    align-items: center !important;
+    justify-content: center !important;
+    width: 2.75rem !important;
+    height: 2.75rem !important;
+    border-radius: 0.75rem !important;
+    background-color: transparent !important;
+    color: #041c39 !important;
+    border: 0 !important;
+    transition: background-color 150ms ease, transform 150ms ease !important;
+    -webkit-tap-highlight-color: transparent !important;
+}
+
+.wali-hamburger-btn svg {
+    width: 1.5rem !important;
+    height: 1.5rem !important;
+}
+
+.wali-hamburger-btn:hover {
+    background-color: rgba(4, 28, 57, 0.06) !important;
+}
+
+.wali-hamburger-btn:active {
+    transform: scale(0.94) !important;
+}
+
+/* ── Overlay gelap di belakang drawer ── */
+.wali-drawer-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 60 !important;
+    background-color: rgba(4, 20, 40, 0.55) !important;
+    -webkit-backdrop-filter: blur(3px) !important;
+    backdrop-filter: blur(3px) !important;
+}
+
+/* ── Panel drawer ── */
+.wali-drawer {
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    z-index: 70 !important;
+    /* display sengaja TANPA !important agar x-show Alpine bisa menyembunyikan */
+    display: flex;
+    flex-direction: column !important;
+    width: min(86vw, 21rem) !important;
+    background-color: #041c39 !important;
+    background-image: linear-gradient(168deg, #06264d 0%, #041c39 58%, #041c39 100%) !important;
+    color: #ffffff !important;
+    border-top-right-radius: 1.5rem !important;
+    border-bottom-right-radius: 1.5rem !important;
+    box-shadow: 0 24px 60px -12px rgba(2, 12, 27, 0.65) !important;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 0.5rem) !important;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.5rem) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+}
+
+/* ── Header drawer ── */
+.wali-drawer-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 0.75rem !important;
+    padding: 0.5rem 0.875rem 1rem !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.09) !important;
+}
+
+.wali-drawer-brand {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+    min-width: 0 !important;
+}
+
+.wali-drawer-brand-logo {
+    width: 2.5rem !important;
+    height: 2.5rem !important;
+    flex-shrink: 0 !important;
+    object-fit: contain !important;
+    border-radius: 0.75rem !important;
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    padding: 0.25rem !important;
+}
+
+.wali-drawer-brand-text {
+    display: flex !important;
+    flex-direction: column !important;
+    min-width: 0 !important;
+    line-height: 1.15 !important;
+}
+
+.wali-drawer-brand-overline {
+    font-size: 0.625rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.16em !important;
+    text-transform: uppercase !important;
+    color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.wali-drawer-brand-title {
+    font-size: 0.9375rem !important;
+    font-weight: 800 !important;
+    color: #ffffff !important;
+}
+
+.wali-drawer-close {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 2.25rem !important;
+    height: 2.25rem !important;
+    flex-shrink: 0 !important;
+    border-radius: 0.7rem !important;
+    background-color: rgba(255, 255, 255, 0.06) !important;
+    color: rgba(255, 255, 255, 0.6) !important;
+    transition: background-color 150ms ease, color 150ms ease !important;
+}
+
+.wali-drawer-close:hover {
+    background-color: rgba(255, 255, 255, 0.14) !important;
+    color: #ffffff !important;
+}
+
+/* ── Label seksi ── */
+.wali-drawer-section {
+    margin: 0 !important;
+    padding: 1.25rem 1.25rem 0.5rem !important;
+    font-size: 0.625rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.16em !important;
+    text-transform: uppercase !important;
+    color: rgba(255, 255, 255, 0.35) !important;
+}
+
+/* ── Daftar menu ── */
+.wali-drawer-nav {
+    display: flex !important;
+    flex: 1 !important;
+    flex-direction: column !important;
+    gap: 0.375rem !important;
+    padding: 0 0.75rem 0.75rem !important;
+}
+
+.wali-drawer-item {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+    padding: 0.625rem 0.75rem !important;
+    border-radius: 1rem !important;
+    color: rgba(255, 255, 255, 0.78) !important;
+    transition: background-color 150ms ease, color 150ms ease !important;
+    -webkit-tap-highlight-color: transparent !important;
+}
+
+.wali-drawer-item:hover {
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    color: #ffffff !important;
+}
+
+.wali-drawer-item-icon {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 2.5rem !important;
+    height: 2.5rem !important;
+    flex-shrink: 0 !important;
+    border-radius: 0.75rem !important;
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    color: rgba(255, 255, 255, 0.85) !important;
+    transition: background-color 150ms ease, color 150ms ease !important;
+}
+
+.wali-drawer-item-text {
+    display: flex !important;
+    flex: 1 !important;
+    flex-direction: column !important;
+    min-width: 0 !important;
+    line-height: 1.2 !important;
+}
+
+.wali-drawer-item-label {
+    font-size: 0.875rem !important;
+    font-weight: 700 !important;
+    color: inherit !important;
+}
+
+.wali-drawer-item-desc {
+    margin-top: 0.1rem !important;
+    font-size: 0.6875rem !important;
+    font-weight: 500 !important;
+    color: rgba(255, 255, 255, 0.45) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+.wali-drawer-item-chevron {
+    width: 1rem !important;
+    height: 1rem !important;
+    flex-shrink: 0 !important;
+    opacity: 0.35 !important;
+    transition: transform 150ms ease, opacity 150ms ease !important;
+}
+
+.wali-drawer-item:hover .wali-drawer-item-chevron {
+    opacity: 0.8 !important;
+    transform: translateX(2px) !important;
+}
+
+/* Item aktif — hijau olive */
+.wali-drawer-item-active,
+.wali-drawer-item-active:hover {
+    background-color: rgba(109, 164, 68, 0.16) !important;
+    color: #ffffff !important;
+    box-shadow: inset 0 0 0 1px rgba(109, 164, 68, 0.45) !important;
+}
+
+.wali-drawer-item-active .wali-drawer-item-icon {
+    background-color: #6da444 !important;
+    background-image: linear-gradient(140deg, #84be59, #5b8d37) !important;
+    color: #ffffff !important;
+}
+
+.wali-drawer-item-active .wali-drawer-item-desc {
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* ── Footer: info user + tombol keluar ── */
+.wali-drawer-footer {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.625rem !important;
+    padding: 0.875rem !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.09) !important;
+    background-color: rgba(0, 0, 0, 0.14) !important;
+}
+
+.wali-drawer-user {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+    padding: 0.625rem 0.75rem !important;
+    border-radius: 0.875rem !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.wali-drawer-user-avatar {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 2.25rem !important;
+    height: 2.25rem !important;
+    flex-shrink: 0 !important;
+    border-radius: 9999px !important;
+    background-image: linear-gradient(140deg, #84be59, #5b8d37) !important;
+    font-size: 0.875rem !important;
+    font-weight: 800 !important;
+    color: #ffffff !important;
+}
+
+.wali-drawer-user-text {
+    display: flex !important;
+    flex-direction: column !important;
+    min-width: 0 !important;
+}
+
+.wali-drawer-user-caption {
+    font-size: 0.625rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.1em !important;
+    text-transform: uppercase !important;
+    color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.wali-drawer-user-name {
+    font-size: 0.875rem !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+.wali-drawer-logout {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+    min-height: 2.75rem !important;
+    padding: 0.75rem !important;
+    border-radius: 0.875rem !important;
+    background-color: rgba(239, 68, 68, 0.12) !important;
+    color: #fca5a5 !important;
+    font-size: 0.875rem !important;
+    font-weight: 700 !important;
+    transition: background-color 150ms ease, color 150ms ease !important;
+    -webkit-tap-highlight-color: transparent !important;
+}
+
+.wali-drawer-logout:hover {
+    background-color: rgba(239, 68, 68, 0.22) !important;
+    color: #fecaca !important;
+}
+
+/* ── PWA standalone: safe-area iOS ── */
+@media (display-mode: standalone) {
+    .fi-topbar-ctn {
+        padding-top: env(safe-area-inset-top, 0px);
+    }
+
+    .fi-page-content {
+        padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px)) !important;
+    }
+}
+
+/* ── Cetak: sembunyikan elemen navigasi ── */
+@media print {
+    .fi-sidebar,
+    .fi-topbar-ctn,
+    .wali-mobile-nav,
+    .no-print {
+        display: none !important;
+    }
 }

@@ -33,6 +33,44 @@ class Santri extends Model
 
     protected $table = 'santris';
 
+    /**
+     * Nama kelas santri.
+     *
+     * Tabel `santris` di database bersama tidak punya kolom `kelas` - hanya
+     * `kelas_id` yang menunjuk tabel `kelas`. StudentHub memakai accessor di
+     * modelnya (StudentHub/app/Models/Santri.php `getKelasAttribute`) untuk
+     * menerjemahkan id itu menjadi teks "Kelas VII A", dst; WALMUR meniru
+     * perilaku yang sama supaya query `guru_mapel_settings.kelas` (yang
+     * memakai teks nama kelas) dan seluruh cetakan rapor/laporan cocok.
+     *
+     * Hasil di-cache per id supaya tidak N+1 saat tabel rapor memakai
+     * `$santri->kelas` berulang kali dalam satu request.
+     *
+     * @var array<int, string|null>
+     */
+    private static array $kelasNamaCache = [];
+
+    public function getKelasAttribute($value = null): ?string
+    {
+        if (filled($value)) {
+            return $value;
+        }
+
+        $kelasId = $this->kelas_id;
+
+        if (blank($kelasId)) {
+            return null;
+        }
+
+        if (! array_key_exists($kelasId, self::$kelasNamaCache)) {
+            self::$kelasNamaCache[$kelasId] = Kelas::query()
+                ->whereKey($kelasId)
+                ->value('nama_kelas');
+        }
+
+        return self::$kelasNamaCache[$kelasId];
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');

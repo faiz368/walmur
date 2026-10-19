@@ -2,21 +2,21 @@
     <div class="space-y-4">
         {{-- Filter Semester Rapor Bayangan --}}
         <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-xs print:hidden">
-            <div class="flex items-center gap-2">
-                <x-heroicon-m-academic-cap class="h-5 w-5 text-olive-500" />
-                <h3 class="font-extrabold text-navy-900">Rapor Bayangan Tengah Semester (STS)</h3>
+            <div class="flex min-w-0 items-center gap-2">
+                <x-heroicon-m-academic-cap class="h-5 w-5 shrink-0 text-olive-500" />
+                <h3 class="text-sm font-extrabold text-navy-900 sm:text-base">Rapor Bayangan Tengah Semester (STS)</h3>
             </div>
 
-            <div class="flex items-center gap-3">
+            <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:gap-3">
                 <label for="wali-semester-rapor-page" class="text-xs font-bold text-gray-700">Semester:</label>
                 <select id="wali-semester-rapor-page" wire:model.live="semesterRapor"
-                    class="rounded-xl border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-bold focus:border-olive-500 focus:ring-2 focus:ring-olive-500/20">
+                    class="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-bold focus:border-olive-500 focus:ring-2 focus:ring-olive-500/20 sm:flex-none">
                     <option value="1">Semester 1 (Ganjil)</option>
                     <option value="2">Semester 2 (Genap)</option>
                 </select>
 
                 <button type="button" onclick="window.print()"
-                    class="inline-flex items-center gap-1.5 rounded-xl bg-navy-900 px-3 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-navy-800">
+                    class="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-navy-900 px-3 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-navy-800 sm:flex-none">
                     <x-heroicon-m-printer class="h-4 w-4" />
                     <span>Cetak Rapor</span>
                 </button>

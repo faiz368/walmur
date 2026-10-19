@@ -6,7 +6,7 @@
                 <img
                     src="{{ asset('images/logo-walmur-emblem.png') }}"
                     alt="Logo WALMUR"
-                    class="h-36 sm:h-44 w-auto object-contain transition-transform duration-300 hover:scale-105"
+                    class="h-28 w-auto object-contain transition-transform duration-300 hover:scale-105 sm:h-40"
                 />
             </div>
             <h1 class="wali-login-title">Portal Wali Murid</h1>

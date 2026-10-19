@@ -60,9 +60,11 @@ class User extends Authenticatable implements FilamentUser
      * satu baris `santris`; pencocokan longgar berisiko menampilkan laporan
      * anak yang salah.
      *
-     * Penyelesaian hanya lewat dua kunci yang deterministik:
+     * Penyelesaian hanya lewat tiga kunci yang deterministik:
      *   1. `santris.user_id` — tautan resmi StudentHub;
-     *   2. `santris.nis`    — hanya bila cocok persis, bukan LIKE.
+     *   2. `santris.nis`    — hanya bila cocok persis, bukan LIKE;
+     *   3. `santris.email`  — fallback bila user_id & nis belum terisi,
+     *                         aman karena email bersifat unik per santri.
      *
      * `orderBy('id')` dipakai karena ada akun yang tertaut ke 2 baris
      * santris (user_id=115), sehingga tanpa itu hasilnya tidak deterministik.
@@ -78,7 +80,15 @@ class User extends Authenticatable implements FilamentUser
         }
 
         if (filled($this->nis)) {
-            return Santri::where('nis', $this->nis)->orderBy('id')->first();
+            $santri = Santri::where('nis', $this->nis)->orderBy('id')->first();
+
+            if ($santri !== null) {
+                return $santri;
+            }
+        }
+
+        if (filled($this->email)) {
+            return Santri::where('email', $this->email)->orderBy('id')->first();
         }
 
         return null;
