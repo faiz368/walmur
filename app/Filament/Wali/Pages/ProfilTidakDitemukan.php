@@ -2,14 +2,13 @@
 
 namespace App\Filament\Wali\Pages;
 
-use BackedEnum;
-
 use App\Filament\Wali\Pages\Concerns\MemilikiSantri;
+use BackedEnum;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * Layar untuk 28 akun murid yang login berhasil tetapi tidak tertaut ke
+ * Layar untuk akun murid yang login berhasil tetapi tidak tertaut ke
  * baris `santris` mana pun, sehingga tidak ada laporan yang bisa ditampilkan.
  *
  * Ditampilkan, bukan 404, supaya wali tahu masalahnya ada di sisi data
@@ -21,7 +20,7 @@ class ProfilTidakDitemukan extends Page
 
     protected static ?string $title = 'Profil Belum Terhubung';
 
-    protected static string | BackedEnum | null $navigationIcon = 'heroicon-o-exclamation-triangle';
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-exclamation-triangle';
 
     protected static ?string $slug = 'profil-tidak-ditemukan';
 

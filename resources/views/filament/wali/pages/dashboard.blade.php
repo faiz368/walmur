@@ -25,17 +25,22 @@
                 <span>Periode Laporan</span>
             </h4>
 
-            @if (blank($semester) && blank($bulan) && blank($pekan))
-                <span class="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[10px] font-bold text-blue-700">
-                    Belum Memilih Periode
-                </span>
-            @else
+            <div class="flex flex-wrap items-center gap-2">
                 <span class="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">
-                    Semester {{ $periode['semester'] === '1' ? 'Ganjil' : 'Genap' }}
-                    @if ($periode['bulan']) &bull; {{ $periode['bulan'] }} @endif
-                    @if ($periode['pekan']) (Pekan {{ $periode['pekan'] }}) @endif
+                    @if (blank($semester) && blank($bulan) && blank($pekan))
+                        Semua Periode
+                    @else
+                        Semester {{ $periode['semester'] === '1' ? 'Ganjil' : ($periode['semester'] === '2' ? 'Genap' : 'Semua') }}
+                        @if ($periode['bulan']) &bull; {{ $periode['bulan'] }} @endif
+                        @if ($periode['pekan']) (Pekan {{ $periode['pekan'] }}) @endif
+                    @endif
                 </span>
-            @endif
+
+                <x-filament::button type="button" size="xs" color="gray" outlined
+                    icon="heroicon-m-arrow-path" wire:click="pilihPeriodeSekarang">
+                    Sekarang
+                </x-filament::button>
+            </div>
         </div>
 
         <div class="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2 lg:grid-cols-4">
@@ -54,7 +59,7 @@
                 <select id="wali-bulan" wire:model.live="bulan"
                     class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 font-bold focus:border-olive-500">
                     <option value="">Semua Bulan</option>
-                    @foreach ($namaBulan as $nama)
+                    @foreach ($pilihanBulan as $nama)
                         <option value="{{ $nama }}">{{ $nama }}</option>
                     @endforeach
                 </select>
@@ -62,8 +67,9 @@
 
             <div>
                 <label class="mb-1 block font-bold text-gray-700" for="wali-pekan">Pekan ke-</label>
-                <select id="wali-pekan" wire:model.live="pekan"
-                    class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 font-bold focus:border-olive-500">
+                <select id="wali-pekan" wire:model.live="pekan" @disabled(blank($bulan))
+                    title="{{ blank($bulan) ? 'Pilih bulan terlebih dahulu' : '' }}"
+                    class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 font-bold focus:border-olive-500 disabled:cursor-not-allowed disabled:opacity-60">
                     <option value="">Semua Pekan</option>
                     @foreach ($daftarPekan as $p)
                         <option value="{{ $p['pekan_dalam_bulan'] }}">
@@ -115,13 +121,7 @@
             <span>Rekapitulasi Kehadiran &amp; Kesehatan (Periode Ini)</span>
         </h4>
 
-        @if (blank($semester) && blank($bulan) && blank($pekan))
-            <p class="rounded-2xl border border-blue-200 bg-blue-50/70 p-6 text-center text-xs font-bold text-blue-800 shadow-2xs">
-                <x-heroicon-m-funnel class="mr-1.5 inline-block h-4 w-4 text-blue-600" />
-                Pilih Periode Laporan Yang Diinginkan
-            </p>
-        @else
-            <div class="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
+        <div class="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
                 <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-3.5 text-center">
                     <span class="block text-[11px] font-extrabold uppercase tracking-wider text-emerald-700">Total Hadir</span>
                     <h3 class="mt-1 text-2xl font-extrabold text-emerald-800">{{ $cntHadir }}
@@ -148,11 +148,10 @@
                 </div>
             </div>
 
-            @if ($jumlahAbsensiTercatat === 0)
-                <p class="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center text-xs font-semibold text-gray-500">
-                    Belum ada data kehadiran yang tercatat pada periode ini.
-                </p>
-            @endif
+        @if ($jumlahAbsensiTercatat === 0)
+            <p class="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center text-xs font-semibold text-gray-500">
+                Belum ada data kehadiran yang tercatat pada periode ini.
+            </p>
         @endif
     </div>
 

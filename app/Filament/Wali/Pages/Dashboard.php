@@ -2,12 +2,13 @@
 
 namespace App\Filament\Wali\Pages;
 
-use BackedEnum;
-
 use App\Filament\Wali\Pages\Concerns\MemilikiSantri;
+use App\Filament\Wali\Pages\Concerns\MengaturPeriodePekanan;
 use App\Support\LaporanPekananCalculator;
 use App\Support\LaporanPekananData;
+use BackedEnum;
 use Filament\Pages\Dashboard as BaseDashboard;
+use Illuminate\Contracts\Support\Htmlable;
 
 /**
  * Halaman ringkasan untuk wali murid: identitas anak, rekap kehadiran,
@@ -19,25 +20,20 @@ use Filament\Pages\Dashboard as BaseDashboard;
 class Dashboard extends BaseDashboard
 {
     use MemilikiSantri;
+    use MengaturPeriodePekanan;
 
     protected static ?string $title = 'Beranda';
 
-    protected static string | BackedEnum | null $navigationIcon = 'heroicon-o-home';
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-home';
 
     protected static ?string $slug = 'beranda';
 
     protected string $view = 'filament.wali.pages.dashboard';
 
-    public function getHeading(): string|\Illuminate\Contracts\Support\Htmlable|null
+    public function getHeading(): string|Htmlable|null
     {
         return '';
     }
-
-    public ?string $semester = null;
-
-    public ?string $bulan = null;
-
-    public ?string $pekan = null;
 
     protected function getHeaderActions(): array
     {
@@ -72,7 +68,8 @@ class Dashboard extends BaseDashboard
             'jumlahKbm' => $laporan['kbmLaporans']->count(),
             'jumlahPelanggaran' => $laporan['pelanggaran']->count(),
             'namaBulan' => LaporanPekananCalculator::NAMA_BULAN,
-            'daftarPekan' => LaporanPekananCalculator::daftarPekan($periode['tahunAjaran']),
+            'pilihanBulan' => $this->pilihanBulan(),
+            'daftarPekan' => $this->daftarPekanFilter(),
             ...$laporan,
         ];
     }

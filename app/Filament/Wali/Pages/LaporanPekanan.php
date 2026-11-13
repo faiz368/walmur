@@ -3,7 +3,7 @@
 namespace App\Filament\Wali\Pages;
 
 use App\Filament\Wali\Pages\Concerns\MemilikiSantri;
-use App\Support\LaporanPekananCalculator;
+use App\Filament\Wali\Pages\Concerns\MengaturPeriodePekanan;
 use App\Support\LaporanPekananData;
 use App\Support\RaporBayanganData;
 use BackedEnum;
@@ -22,6 +22,7 @@ use Illuminate\Support\Carbon;
 class LaporanPekanan extends Page
 {
     use MemilikiSantri;
+    use MengaturPeriodePekanan;
 
     protected static ?string $title = 'Laporan Pekanan Anak';
 
@@ -30,12 +31,6 @@ class LaporanPekanan extends Page
     protected static ?string $slug = 'laporan-pekanan';
 
     protected string $view = 'filament.wali.pages.laporan-pekanan';
-
-    public ?string $semester = null;
-
-    public ?string $bulan = null;
-
-    public ?string $pekan = null;
 
     public string $tabAktif = 'kbm';
 
@@ -77,8 +72,8 @@ class LaporanPekanan extends Page
             'santri' => $santri,
             'periode' => $periode,
             'waliKelas' => $calculator->waliKelas(),
-            'namaBulan' => LaporanPekananCalculator::NAMA_BULAN,
-            'daftarPekan' => LaporanPekananCalculator::daftarPekan($periode['tahunAjaran']),
+            'pilihanBulan' => $this->pilihanBulan(),
+            'daftarPekan' => $this->daftarPekanFilter(),
             'nomorDokumen' => 'LAP/'.Carbon::now()->format('Ym').'/'.$santri->id,
             'tanggalCetak' => Carbon::now()->translatedFormat('d F Y'),
             'tanggalMulai' => Carbon::parse($periode['dari'])->translatedFormat('d F Y'),

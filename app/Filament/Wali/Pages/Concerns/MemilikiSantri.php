@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Auth;
 /**
  * Resolusi profil santri milik wali murid yang sedang login.
  *
- * 28 dari 148 akun murid tidak tertaut ke baris `santris` mana pun. Akun
+ * Sebagian kecil akun murid tidak tertaut ke baris `santris` mana pun. Akun
  * seperti itu tetap boleh login, tapi tidak boleh membuka halaman yang
  * berisi data anak - dialihkan ke layar ProfilTidakDitemukan supaya bisa
  * menghubungi pihak kesiswaan.

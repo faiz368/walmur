@@ -2,7 +2,6 @@
 
 namespace App\Support;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -143,6 +142,61 @@ class LaporanPekananCalculator
         $sabtuPenutup = $sabtuPertama->copy()->addWeeks($pekan - 1);
 
         return self::normalisasiPekan($sabtuPenutup, $tahunAjaran);
+    }
+
+    /**
+     * Identitas periode berjalan untuk mengisi filter secara otomatis.
+     *
+     * Ketiganya diambil dari satu hasil normalisasiPekan() supaya semester,
+     * bulan, dan pekan tidak saling bertentangan saat pekan berjalan ditutup
+     * di bulan/semester berikutnya.
+     *
+     * @return array{semester: string, bulan: string, pekan: int, tahunAjaran: string}
+     */
+    public static function periodeOtomatis(?Carbon $tanggal = null): array
+    {
+        $tanggal ??= Carbon::now();
+        $tahunAjaran = self::tahunAjaranAktif($tanggal);
+        $snap = self::normalisasiPekan($tanggal, $tahunAjaran);
+
+        return [
+            'semester' => self::semesterDariBulan($snap['bulan_ke']),
+            'bulan' => self::NAMA_BULAN[$snap['bulan_ke'] - 1],
+            'pekan' => $snap['pekan_dalam_bulan'],
+            'tahunAjaran' => $tahunAjaran,
+        ];
+    }
+
+    /**
+     * Nama bulan yang termasuk satu semester. Semester kosong = semua bulan.
+     *
+     * @return list<string>
+     */
+    public static function bulanUntukSemester(string $semester): array
+    {
+        return match ($semester) {
+            '1' => array_slice(self::NAMA_BULAN, 6),
+            '2' => array_slice(self::NAMA_BULAN, 0, 6),
+            default => self::NAMA_BULAN,
+        };
+    }
+
+    /**
+     * Semua pekan yang Sabtu penutupnya jatuh di bulan tertentu.
+     *
+     * @return Collection<int, array>
+     */
+    public static function pekanUntukBulan(?string $bulan, ?string $tahunAjaran = null): Collection
+    {
+        $bulanKe = self::bulanKeDariNama($bulan);
+
+        if ($bulanKe === null) {
+            return collect();
+        }
+
+        return self::daftarPekan($tahunAjaran)
+            ->where('bulan_ke', $bulanKe)
+            ->values();
     }
 
     /**

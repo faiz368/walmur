@@ -3,13 +3,16 @@
 namespace App\Support;
 
 use App\Enums\StatusAbsensi;
+use App\Models\AbsensiHalaqoh;
 use App\Models\AbsensiSantri;
 use App\Models\Kelas;
 use App\Models\LaporanPekanan;
+use App\Models\LaporanPekananKelas;
 use App\Models\PelanggaranSantri;
 use App\Models\Santri;
 use App\Models\SantriIzin;
 use App\Models\SantriSakit;
+use App\Models\Setoran;
 use App\Models\TesHafalan;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -41,12 +44,37 @@ class LaporanPekananData
         $now ??= Carbon::now();
         $tahunAjaran = LaporanPekananCalculator::tahunAjaranAktif($now);
 
-        $semester = (string) ($filter['semester'] ?? LaporanPekananCalculator::semesterAktif($now));
-        $bulan = filled($filter['bulan'] ?? null) ? trim((string) $filter['bulan']) : null;
-        $pekan = filled($filter['pekan'] ?? null) ? trim((string) $filter['pekan']) : null;
+        $semester = $filter['semester'] ?? null;
+        $semester = $semester === null
+            ? LaporanPekananCalculator::semesterAktif($now)
+            : trim((string) $semester);
+
+        if (! in_array($semester, ['', '1', '2'], true)) {
+            $semester = LaporanPekananCalculator::semesterAktif($now);
+        }
+
+        $bulan = $filter['bulan'] ?? null;
+        $bulan = $bulan === null ? null : trim((string) $bulan);
+
+        $pekan = $filter['pekan'] ?? null;
+        $pekan = $pekan === null ? null : trim((string) $pekan);
+        $pekan = ctype_digit((string) $pekan) && (int) $pekan >= 1 && (int) $pekan <= 5
+            ? (string) (int) $pekan
+            : null;
+
+        // Tanpa filter bulan -> perilaku lama: bulan berjalan.
+        $bulan ??= LaporanPekananCalculator::NAMA_BULAN[(int) $now->format('n') - 1];
+
+        $bulanKe = $bulan === '' ? null : LaporanPekananCalculator::bulanKeDariNama($bulan);
+
+        if ($bulan !== '' && $bulanKe === null) {
+            $bulan = LaporanPekananCalculator::NAMA_BULAN[(int) $now->format('n') - 1];
+            $bulanKe = (int) $now->format('n');
+            $pekan = null;
+        }
 
         // Bulan + pekan -> blok Minggu-Sabtu yang ditutup Sabtu penutup bulan itu.
-        if ($bulan !== null && $pekan !== null) {
+        if ($bulanKe !== null && $pekan !== null) {
             $snap = LaporanPekananCalculator::normalisasiDariBulanPekan($bulan, (int) $pekan, $tahunAjaran);
 
             if ($snap !== null) {
@@ -61,25 +89,36 @@ class LaporanPekananData
             }
         }
 
-        // Hanya bulan (atau tidak ada filter) -> satu bulan penuh.
-        $bulanKe = $bulan !== null
-            ? LaporanPekananCalculator::bulanKeDariNama($bulan)
-            : (int) $now->format('n');
-
-        if ($bulanKe === null) {
-            $bulanKe = (int) $now->format('n');
-        }
-
         // Juli-Desember milik tahun pertama tahun ajaran, Januari-Juni tahun kedua.
         $tahunAwal = (int) $now->format('n') >= 7 ? (int) $now->format('Y') : ((int) $now->format('Y') - 1);
-        $tahun = $bulanKe >= 7 ? $tahunAwal : $tahunAwal + 1;
+
+        // Hanya bulan (atau pekan "Semua") -> satu bulan penuh.
+        if ($bulanKe !== null) {
+            $tahun = $bulanKe >= 7 ? $tahunAwal : $tahunAwal + 1;
+
+            return [
+                'dari' => Carbon::create($tahun, $bulanKe, 1)->startOfMonth()->toDateString(),
+                'sampai' => Carbon::create($tahun, $bulanKe, 1)->endOfMonth()->toDateString(),
+                'semester' => $semester,
+                'bulan' => $bulan,
+                'pekan' => null,
+                'tahunAjaran' => $tahunAjaran,
+            ];
+        }
+
+        // Bulan "Semua" -> rentang penuh semester terpilih, atau satu tahun ajaran.
+        [$dari, $sampai] = match ($semester) {
+            '1' => [Carbon::create($tahunAwal, 7, 1), Carbon::create($tahunAwal, 12, 31)],
+            '2' => [Carbon::create($tahunAwal + 1, 1, 1), Carbon::create($tahunAwal + 1, 6, 30)],
+            default => [Carbon::create($tahunAwal, 7, 1), Carbon::create($tahunAwal + 1, 6, 30)],
+        };
 
         return [
-            'dari' => Carbon::create($tahun, $bulanKe, 1)->startOfMonth()->toDateString(),
-            'sampai' => Carbon::create($tahun, $bulanKe, 1)->endOfMonth()->toDateString(),
+            'dari' => $dari->toDateString(),
+            'sampai' => $sampai->toDateString(),
             'semester' => $semester,
-            'bulan' => $bulan,
-            'pekan' => $pekan,
+            'bulan' => null,
+            'pekan' => null,
             'tahunAjaran' => $tahunAjaran,
         ];
     }
@@ -87,13 +126,15 @@ class LaporanPekananData
     /**
      * Kumpulan data laporan untuk satu periode.
      *
-     * @return array{kbmLaporans: Collection, absensis: Collection, sakits: Collection, izins: Collection, pelanggaran: Collection, tesHafalans: Collection, cntHadir: int, cntSakit: int, cntIzin: int, cntAlfa: int}
+     * @return array{kbmLaporans: Collection, tahfizhLaporans: Collection, tahfizhRingkasan: array, absensis: Collection, sakits: Collection, izins: Collection, pelanggaran: Collection, tesHafalans: Collection, cntHadir: int, cntSakit: int, cntIzin: int, cntAlfa: int}
      */
     public function laporan(string $dari, string $sampai, string $semester, ?string $bulan = null, ?string $pekan = null): array
     {
         $santri = $this->santri;
 
         $kbmLaporans = $this->laporanKbm($dari, $sampai, $semester, $bulan, $pekan);
+        $tahfizhLaporans = $this->laporanTahfizh($dari, $sampai, $semester, $bulan, $pekan);
+        $tahfizhRingkasan = $this->ringkasanTahfizh($dari, $sampai, $tahfizhLaporans);
 
         $absensis = AbsensiSantri::where('santri_id', $santri->id)
             ->whereBetween('tanggal', [$dari, $sampai])
@@ -121,6 +162,8 @@ class LaporanPekananData
 
         return [
             'kbmLaporans' => $kbmLaporans,
+            'tahfizhLaporans' => $tahfizhLaporans,
+            'tahfizhRingkasan' => $tahfizhRingkasan,
             'absensis' => $absensis,
             'sakits' => $sakits,
             'izins' => $izins,
@@ -183,6 +226,155 @@ class LaporanPekananData
         }
 
         return $query->orderBy('mata_pelajaran')->get();
+    }
+
+    /**
+     * Laporan tahfizh yang sudah dipublikasikan untuk santri pada satu periode.
+     *
+     * Hanya detail milik santri yang sedang login yang di-eager-load, supaya
+     * capaian/catatan santri lain tidak pernah terbaca oleh portal wali.
+     *
+     * @return Collection<int, LaporanPekananKelas>
+     */
+    public function laporanTahfizh(string $dari, string $sampai, string $semester, ?string $bulan, ?string $pekan): Collection
+    {
+        $milikSantri = function ($query) {
+            $query->where(function ($q) {
+                $q->where('santri_id', $this->santri->id);
+
+                if (filled($this->santri->nis)) {
+                    $q->orWhere(function ($q2) {
+                        $q2->whereNull('santri_id')
+                            ->where('nis', $this->santri->nis);
+                    });
+                }
+            });
+        };
+
+        return LaporanPekananKelas::query()
+            ->where('status', 'published')
+            ->where('periode_mulai', '<=', $sampai)
+            ->where('periode_selesai', '>=', $dari)
+            ->with(['details' => function ($query) use ($milikSantri) {
+                $milikSantri($query);
+                $query->orderBy('urutan');
+            }])
+            ->whereHas('details', $milikSantri)
+            ->orderBy('periode_mulai')
+            ->orderBy('id')
+            ->get();
+    }
+
+    /**
+     * Ringkasan tab Tahfizh dari laporan pekanan + data setoran/presensi.
+     *
+     * @param  Collection<int, LaporanPekananKelas>  $laporanTahfizh
+     * @return array{
+     *     guru: array{nama: ?string, halaqah: ?string},
+     *     capaian: array{target: ?float, capaian: ?float, persentase: ?float, catatan: ?string, ziyadah_terakhir: ?Setoran, jumlah_ziyadah: int},
+     *     murojaah: array{jumlah: int, halaman: float, items: Collection<int, Setoran>},
+     *     presensi: array{rekap: array<string, int>, items: Collection<int, AbsensiHalaqoh>},
+     *     hafalan: array{juz: float, halaman: float, target_juz: float, total_surah: int}
+     * }
+     */
+    public function ringkasanTahfizh(string $dari, string $sampai, Collection $laporanTahfizh): array
+    {
+        $detailTerakhir = $laporanTahfizh->last()?->details->first();
+
+        $ziyadah = Setoran::query()
+            ->where('santri_id', $this->santri->id)
+            ->ziyadah()
+            ->whereBetween('tanggal', [$dari, $sampai])
+            ->orderByDesc('tanggal')
+            ->orderByDesc('id')
+            ->get();
+
+        $murojaah = Setoran::query()
+            ->where('santri_id', $this->santri->id)
+            ->murojaah()
+            ->whereBetween('tanggal', [$dari, $sampai])
+            ->orderByDesc('tanggal')
+            ->orderByDesc('id')
+            ->get();
+
+        $absensiHalaqoh = AbsensiHalaqoh::query()
+            ->where('santri_id', $this->santri->id)
+            ->whereBetween('tanggal', [$dari, $sampai])
+            ->orderBy('tanggal')
+            ->get();
+
+        return [
+            'guru' => $this->keteranganHalaqoh(),
+            'capaian' => [
+                'target' => $detailTerakhir?->target_pekanan,
+                'capaian' => $detailTerakhir?->capaian_pekanan,
+                'persentase' => $detailTerakhir?->persentase,
+                'catatan' => $detailTerakhir?->catatan,
+                'ziyadah_terakhir' => $ziyadah->first(),
+                'jumlah_ziyadah' => $ziyadah->count(),
+            ],
+            'murojaah' => [
+                'jumlah' => $murojaah->count(),
+                'halaman' => (float) $murojaah->sum(fn (Setoran $setoran) => (int) $setoran->jumlah_halaman_murajaah),
+                'items' => $murojaah,
+            ],
+            'presensi' => [
+                'rekap' => $this->rekapPresensiHalaqoh($laporanTahfizh, $absensiHalaqoh),
+                'items' => $absensiHalaqoh,
+            ],
+            'hafalan' => [
+                'juz' => (float) ($detailTerakhir?->total_hafalan_juz ?? $this->santri->current_juz ?? 0),
+                'halaman' => (float) ($detailTerakhir?->total_hafalan_halaman ?? 0),
+                'target_juz' => (float) ($this->santri->target_juz ?? 0),
+                'total_surah' => (int) ($this->santri->total_surah_hafal ?? 0),
+            ],
+        ];
+    }
+
+    /**
+     * @return array{nama: ?string, halaqah: ?string}
+     */
+    public function keteranganHalaqoh(): array
+    {
+        $halaqah = $this->santri->halaqah;
+
+        return [
+            'nama' => $halaqah?->ustadz?->name,
+            'halaqah' => $halaqah?->nama_halaqah ?: $this->santri->halaqoh,
+        ];
+    }
+
+    /**
+     * @param  Collection<int, LaporanPekananKelas>  $laporanTahfizh
+     * @param  Collection<int, AbsensiHalaqoh>  $absensiHalaqoh
+     * @return array<string, int>
+     */
+    private function rekapPresensiHalaqoh(Collection $laporanTahfizh, Collection $absensiHalaqoh): array
+    {
+        $rekap = array_fill_keys(AbsensiHalaqoh::statusLabels(), 0);
+        $details = $laporanTahfizh->flatMap(fn (LaporanPekananKelas $laporan) => $laporan->details);
+
+        if ($details->isNotEmpty()) {
+            foreach ($details as $detail) {
+                $rekap[AbsensiHalaqoh::STATUS_HADIR] += (int) $detail->absensi_hadir;
+                $rekap[AbsensiHalaqoh::STATUS_SAKIT] += (int) $detail->absensi_sakit;
+                $rekap[AbsensiHalaqoh::STATUS_IZIN] += (int) $detail->absensi_izin;
+                $rekap[AbsensiHalaqoh::STATUS_ALFA] += (int) $detail->absensi_alpa;
+                $rekap[AbsensiHalaqoh::STATUS_TIDAK_SETOR] += (int) $detail->absensi_tidak_setor;
+            }
+
+            return $rekap;
+        }
+
+        foreach ($absensiHalaqoh as $absensi) {
+            $status = $absensi->statusLabel();
+
+            if (array_key_exists($status, $rekap)) {
+                $rekap[$status]++;
+            }
+        }
+
+        return $rekap;
     }
 
     /**

@@ -73,7 +73,7 @@
                 <select id="lp-bulan" wire:model.live="bulan"
                     class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 font-bold focus:border-olive-500">
                     <option value="">Semua Bulan</option>
-                    @foreach ($namaBulan as $nama)
+                    @foreach ($pilihanBulan as $nama)
                         <option value="{{ $nama }}">{{ $nama }}</option>
                     @endforeach
                 </select>
@@ -81,8 +81,9 @@
 
             <div>
                 <label class="mb-1 block font-bold text-gray-700" for="lp-pekan">Pekan ke-</label>
-                <select id="lp-pekan" wire:model.live="pekan"
-                    class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 font-bold focus:border-olive-500">
+                <select id="lp-pekan" wire:model.live="pekan" @disabled(blank($bulan))
+                    title="{{ blank($bulan) ? 'Pilih bulan terlebih dahulu' : '' }}"
+                    class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 font-bold focus:border-olive-500 disabled:cursor-not-allowed disabled:opacity-60">
                     <option value="">Semua Pekan</option>
                     @foreach ($daftarPekan as $p)
                         <option value="{{ $p['pekan_dalam_bulan'] }}">
@@ -92,13 +93,17 @@
                 </select>
             </div>
 
-            <div class="flex items-end">
-<span class="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-center text-[10px] font-bold text-emerald-700">
-                        {{ count($kbmLaporans) }} Mapel &bull; {{ count($absensis) }} Absensi
-                    </span>
-                </div>
+            <div class="flex flex-col justify-end gap-2">
+                <x-filament::button type="button" size="sm" color="gray" outlined
+                    icon="heroicon-m-arrow-path" wire:click="pilihPeriodeSekarang" class="w-full">
+                    Periode Sekarang
+                </x-filament::button>
+                <span class="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-center text-[10px] font-bold text-emerald-700">
+                    {{ count($kbmLaporans) }} Mapel &bull; {{ count($absensis) }} Absensi
+                </span>
             </div>
         </div>
+    </div>
     @endif
 
     {{-- Pemilih tab. Diletakkan di luar dokumen supaya tetap bisa berpindah
@@ -118,7 +123,6 @@
             @class(['wali-tab', $tabAktif === 'tahfizh' ? 'wali-tab-aktif' : 'wali-tab-nonaktif'])>
             <x-heroicon-o-book-open class="h-4 w-4" />
             <span>3. Tahfizh</span>
-            <span class="rounded-full bg-amber-500 px-2 py-0.5 text-[9px] font-bold uppercase text-white">Menyusul</span>
         </button>
     </div>
 
@@ -477,17 +481,158 @@
 
         {{-- 3. Tahfizh --}}
         <div @if ($tabAktif !== 'tahfizh') class="hidden print:block" @endif class="space-y-4">
+            @php
+                $ringkasan = $tahfizhRingkasan;
+                $formatJuz = fn ($nilai) => rtrim(rtrim(number_format((float) $nilai, 2, ',', ''), '0'), ',');
+                $adaCapaian = $ringkasan['capaian']['target'] !== null || $ringkasan['capaian']['capaian'] !== null;
+                $ziyadahTerakhir = $ringkasan['capaian']['ziyadah_terakhir'];
+                $gayaPresensi = [
+                    'Hadir' => ['dot' => 'bg-emerald-500', 'chip' => 'border-emerald-100 bg-emerald-50 text-emerald-700'],
+                    'Sakit' => ['dot' => 'bg-amber-500', 'chip' => 'border-amber-100 bg-amber-50 text-amber-700'],
+                    'Izin' => ['dot' => 'bg-sky-500', 'chip' => 'border-sky-100 bg-sky-50 text-sky-700'],
+                    'Alfa' => ['dot' => 'bg-rose-500', 'chip' => 'border-rose-100 bg-rose-50 text-rose-700'],
+                    'Tidak Setor' => ['dot' => 'bg-gray-400', 'chip' => 'border-gray-200 bg-gray-50 text-gray-600'],
+                ];
+            @endphp
+
             <h4 class="wali-section-title justify-between border-b border-gray-200 pb-2">
                 <span class="flex items-center gap-2">
                     <x-heroicon-o-book-open class="h-4 w-4 text-amber-500" />
                     <span>3. Rekapitulasi Capaian Tahfizh Al-Qur&rsquo;an</span>
                 </span>
-                <span class="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold text-amber-800">
-                    Menyusul / Dalam Pengembangan
-                </span>
+                <span class="text-xs font-bold text-gray-500">{{ count($tahfizhLaporans) }} Laporan</span>
             </h4>
 
-            @if (count($tesHafalans) > 0)
+            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                    <p class="text-[10px] font-extrabold uppercase tracking-wide text-amber-700">Keterangan Guru Halaqoh</p>
+                    <p class="mt-2 text-sm font-extrabold text-navy-900">{{ $ringkasan['guru']['nama'] ?: '-' }}</p>
+                    <p class="text-[10px] font-semibold text-gray-600">Guru Pembimbing Tahfizh</p>
+                    <p class="mt-2 text-xs font-bold text-gray-700">Halaqah: {{ $ringkasan['guru']['halaqah'] ?: '-' }}</p>
+                </div>
+
+                <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                    <p class="text-[10px] font-extrabold uppercase tracking-wide text-emerald-700">Capaian Tahfizh</p>
+                    @if ($adaCapaian)
+                        <p class="mt-2 text-lg font-extrabold text-navy-900">
+                            {{ $formatJuz($ringkasan['capaian']['capaian'] ?? 0) }} / {{ $formatJuz($ringkasan['capaian']['target'] ?? 0) }} Juz
+                        </p>
+                        <p class="text-xs font-bold text-emerald-700">{{ $formatJuz($ringkasan['capaian']['persentase'] ?? 0) }}% dari target</p>
+                    @elseif ($ziyadahTerakhir)
+                        <p class="mt-2 text-lg font-extrabold text-navy-900">Juz {{ $ziyadahTerakhir->juz }}</p>
+                        <p class="text-xs font-semibold text-gray-600">
+                            {{ $ziyadahTerakhir->surah_name }} (Ayat {{ $ziyadahTerakhir->ayat_awal }}-{{ $ziyadahTerakhir->ayat_akhir }})
+                        </p>
+                    @else
+                        <p class="mt-2 text-lg font-extrabold text-navy-900">-</p>
+                        <p class="text-xs font-semibold text-gray-600">Belum ada capaian</p>
+                    @endif
+                    <p class="mt-1 text-[10px] font-semibold text-gray-500">{{ $ringkasan['capaian']['jumlah_ziyadah'] }} setoran ziyadah</p>
+                </div>
+
+                <div class="rounded-2xl border border-sky-200 bg-sky-50 p-4">
+                    <p class="text-[10px] font-extrabold uppercase tracking-wide text-sky-700">Muroja&rsquo;ah</p>
+                    <p class="mt-2 text-lg font-extrabold text-navy-900">{{ $ringkasan['murojaah']['jumlah'] }} setoran</p>
+                    <p class="text-xs font-bold text-sky-700">{{ $formatJuz($ringkasan['murojaah']['halaman']) }} halaman</p>
+                </div>
+
+                <div class="rounded-2xl border border-violet-200 bg-violet-50 p-4">
+                    <p class="text-[10px] font-extrabold uppercase tracking-wide text-violet-700">Akumulasi Total Hafalan</p>
+                    <p class="mt-2 text-lg font-extrabold text-navy-900">{{ $formatJuz($ringkasan['hafalan']['juz']) }} Juz</p>
+                    <p class="text-xs font-bold text-violet-700">{{ $formatJuz($ringkasan['hafalan']['halaman']) }} halaman</p>
+                    <p class="mt-1 text-[10px] font-semibold text-gray-500">
+                        Target {{ $formatJuz($ringkasan['hafalan']['target_juz']) }} Juz &bull; {{ $ringkasan['hafalan']['total_surah'] }} surah
+                    </p>
+                </div>
+            </div>
+
+            <div class="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm print:shadow-none">
+                <div class="flex items-center gap-3">
+                    <div class="flex shrink-0 items-center gap-2.5 border-r border-gray-200 pr-3">
+                        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-navy-900 text-white shadow-sm">
+                            <x-heroicon-o-clipboard-document-check class="h-4 w-4" />
+                        </span>
+                        <div class="leading-tight">
+                            <p class="text-[10px] font-extrabold uppercase tracking-wide text-gray-500">Presensi Halaqoh</p>
+                            <p class="mt-0.5 text-[10px] font-semibold text-gray-400">{{ count($ringkasan['presensi']['items']) }} catatan harian</p>
+                        </div>
+                    </div>
+
+                    <div class="flex min-w-0 flex-1 items-center overflow-x-auto print:overflow-visible">
+                        <div class="flex min-w-max items-center gap-2">
+                            @foreach ($ringkasan['presensi']['rekap'] as $status => $jumlah)
+                                <div class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1.5 {{ $gayaPresensi[$status]['chip'] ?? 'border-gray-200 bg-gray-50 text-gray-600' }}">
+                                    <span class="h-1.5 w-1.5 rounded-full {{ $gayaPresensi[$status]['dot'] ?? 'bg-gray-400' }}"></span>
+                                    <span class="text-[10px] font-bold">{{ $status }}</span>
+                                    <span class="text-xs font-extrabold text-navy-900">{{ $jumlah }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (count($tahfizhLaporans) > 0)
+                <div class="space-y-5">
+                    @foreach ($tahfizhLaporans as $tp)
+                        @php
+                            $detail = $tp->details->first();
+                        @endphp
+                        <div class="space-y-2">
+                            <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                                <span class="font-extrabold text-navy-900">
+                                    {{ $tp->kelas_nama ?: ($santri->kelas ?? '-') }}
+                                </span>
+                                <span class="font-semibold text-gray-500">
+                                    {{ $tp->periode_mulai?->translatedFormat('d M Y') ?? '-' }}
+                                    &mdash;
+                                    {{ $tp->periode_selesai?->translatedFormat('d M Y') ?? '-' }}
+                                </span>
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="w-full overflow-hidden rounded-xl border border-gray-200 border-collapse text-left text-xs">
+                                    <thead>
+                                        <tr class="bg-navy-900 text-[10px] font-extrabold uppercase text-white">
+                                            <th class="w-10 px-3 py-2.5 text-center">No</th>
+                                            <th class="px-4 py-2.5">Target</th>
+                                            <th class="px-4 py-2.5">Capaian</th>
+                                            <th class="px-4 py-2.5 text-center">Persentase</th>
+                                            <th class="px-4 py-2.5">Total Hafalan</th>
+                                            <th class="px-4 py-2.5">Presensi</th>
+                                            <th class="px-4 py-2.5">Catatan</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200">
+                                        <tr class="font-medium hover:bg-gray-50">
+                                            <td class="px-3 py-2.5 text-center font-bold text-gray-500">1</td>
+                                            <td class="px-4 py-2.5 font-bold text-gray-800">{{ $formatJuz($detail?->target_pekanan) }} Juz</td>
+                                            <td class="px-4 py-2.5 font-bold text-gray-800">{{ $formatJuz($detail?->capaian_pekanan) }} Juz</td>
+                                            <td class="px-4 py-2.5 text-center font-bold text-gray-800">{{ $formatJuz($detail?->persentase) }}%</td>
+                                            <td class="px-4 py-2.5 text-gray-800">
+                                                {{ $formatJuz($detail?->total_hafalan_juz) }} Juz
+                                                <span class="text-[10px] text-gray-500">({{ $formatJuz($detail?->total_hafalan_halaman) }} hlm)</span>
+                                            </td>
+                                            <td class="px-4 py-2.5 text-[10px] font-semibold text-gray-600">
+                                                H {{ $detail?->absensi_hadir ?? 0 }} &bull;
+                                                S {{ $detail?->absensi_sakit ?? 0 }} &bull;
+                                                I {{ $detail?->absensi_izin ?? 0 }} &bull;
+                                                A {{ $detail?->absensi_alpa ?? 0 }} &bull;
+                                                TS {{ $detail?->absensi_tidak_setor ?? 0 }}
+                                            </td>
+                                            <td class="px-4 py-2.5 leading-relaxed whitespace-pre-line text-gray-800">{{ $detail?->catatan ?: '-' }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @elseif ($ziyadahTerakhir)
+                <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
+                    Belum ada laporan pekanan Tahfizh yang dipublikasikan. Ringkasan di atas diambil dari setoran tahfizh terbaru.
+                </div>
+            @elseif (count($tesHafalans) > 0)
                 <div class="overflow-x-auto">
                     <table class="w-full overflow-hidden rounded-xl border border-gray-200 border-collapse text-left text-xs">
                         <thead>
@@ -521,11 +666,86 @@
                     <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100 text-amber-600 shadow-sm">
                         <x-heroicon-o-book-open class="h-7 w-7" />
                     </div>
-                    <h4 class="text-sm font-extrabold text-gray-900">Modul Laporan Tahfizh (Menyusul)</h4>
+                    <h4 class="text-sm font-extrabold text-gray-900">Belum Ada Laporan Tahfizh</h4>
                     <p class="mx-auto max-w-md text-xs leading-relaxed text-gray-600">
-                        Fitur rekapitulasi hafalan harian &amp; ujian juz Al-Qur&rsquo;an secara
-                        terintegrasi sedang disiapkan dan akan segera tampil pada bagian ini.
+                        Belum ada laporan capaian tahfizh untuk periode ini.
                     </p>
+                </div>
+            @endif
+
+            @if (count($ringkasan['murojaah']['items']) > 0)
+                <div class="space-y-2">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <h5 class="text-xs font-extrabold uppercase tracking-wide text-gray-700">Muroja&rsquo;ah Pekanan</h5>
+                        <span class="text-[10px] font-semibold text-gray-500">
+                            Menampilkan {{ min(10, count($ringkasan['murojaah']['items'])) }} dari {{ count($ringkasan['murojaah']['items']) }} setoran
+                        </span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full overflow-hidden rounded-xl border border-gray-200 border-collapse text-left text-xs">
+                            <thead>
+                                <tr class="bg-navy-900 text-[10px] font-extrabold uppercase text-white">
+                                    <th class="w-10 px-3 py-2.5 text-center">No</th>
+                                    <th class="px-4 py-2.5">Tanggal</th>
+                                    <th class="px-4 py-2.5">Juz</th>
+                                    <th class="px-4 py-2.5">Surah</th>
+                                    <th class="px-4 py-2.5">Kategori</th>
+                                    <th class="px-4 py-2.5 text-center">Halaman</th>
+                                    <th class="px-4 py-2.5 text-center">Nilai</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                @foreach ($ringkasan['murojaah']['items']->take(10) as $idx => $murojaah)
+                                    <tr class="font-medium hover:bg-gray-50">
+                                        <td class="px-3 py-2.5 text-center font-bold text-gray-500">{{ $idx + 1 }}</td>
+                                        <td class="px-4 py-2.5 text-gray-800">{{ $murojaah->tanggal?->translatedFormat('d M Y') ?? '-' }}</td>
+                                        <td class="px-4 py-2.5 font-bold text-navy-900">Juz {{ $murojaah->juz }}</td>
+                                        <td class="px-4 py-2.5 text-gray-800">{{ $murojaah->surah_name ?: '-' }}</td>
+                                        <td class="px-4 py-2.5 text-gray-800">{{ $murojaah->kategori_murajaah ? str_replace('_', ' ', $murojaah->kategori_murajaah) : '-' }}</td>
+                                        <td class="px-4 py-2.5 text-center text-gray-800">{{ $murojaah->jumlah_halaman_murajaah ?? '-' }}</td>
+                                        <td class="px-4 py-2.5 text-center font-bold text-gray-800">{{ $murojaah->nilai_predikat ?: ($murojaah->nilai ?: '-') }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endif
+
+            @if (count($ringkasan['presensi']['items']) > 0)
+                <div class="space-y-2">
+                    <h5 class="text-xs font-extrabold uppercase tracking-wide text-gray-700">Absensi Halaqoh Santri</h5>
+                    <div class="overflow-x-auto">
+                        <table class="w-full overflow-hidden rounded-xl border border-gray-200 border-collapse text-left text-xs">
+                            <thead>
+                                <tr class="bg-navy-900 text-[10px] font-extrabold uppercase text-white">
+                                    <th class="w-10 px-3 py-2.5 text-center">No</th>
+                                    <th class="px-4 py-2.5">Tanggal</th>
+                                    <th class="px-4 py-2.5">Status</th>
+                                    <th class="px-4 py-2.5">Catatan</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                @foreach ($ringkasan['presensi']['items'] as $idx => $absensi)
+                                    <tr class="font-medium hover:bg-gray-50">
+                                        <td class="px-3 py-2.5 text-center font-bold text-gray-500">{{ $idx + 1 }}</td>
+                                        <td class="px-4 py-2.5 text-gray-800">{{ $absensi->tanggal?->translatedFormat('d M Y') ?? '-' }}</td>
+                                        <td class="px-4 py-2.5 font-bold">
+                                            <span @class([
+                                                'rounded-full px-2 py-0.5 text-[10px]',
+                                                'bg-emerald-100 text-emerald-800' => $absensi->statusLabel() === 'Hadir',
+                                                'bg-sky-100 text-sky-800' => $absensi->statusLabel() === 'Izin',
+                                                'bg-amber-100 text-amber-800' => $absensi->statusLabel() === 'Sakit',
+                                                'bg-rose-100 text-rose-800' => $absensi->statusLabel() === 'Alfa',
+                                                'bg-gray-100 text-gray-700' => $absensi->statusLabel() === 'Tidak Setor',
+                                            ])>{{ $absensi->statusLabel() }}</span>
+                                        </td>
+                                        <td class="px-4 py-2.5 text-gray-800">{{ $absensi->catatan ?: '-' }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             @endif
         </div>

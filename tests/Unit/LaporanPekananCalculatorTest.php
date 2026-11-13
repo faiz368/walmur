@@ -168,6 +168,49 @@ class LaporanPekananCalculatorTest extends TestCase
         ];
     }
 
+    public function test_periode_otomatis_memakai_sabtu_penutup(): void
+    {
+        $hasil = LaporanPekananCalculator::periodeOtomatis(Carbon::parse('2026-11-13'));
+
+        $this->assertSame('1', $hasil['semester']);
+        $this->assertSame('November', $hasil['bulan']);
+        $this->assertSame(2, $hasil['pekan']);
+        $this->assertSame(self::TA, $hasil['tahunAjaran']);
+    }
+
+    public function test_periode_otomatis_akhir_desember_masuk_semester_genap(): void
+    {
+        $hasil = LaporanPekananCalculator::periodeOtomatis(Carbon::parse('2026-12-31'));
+
+        $this->assertSame('2', $hasil['semester']);
+        $this->assertSame('Januari', $hasil['bulan']);
+        $this->assertSame(1, $hasil['pekan']);
+    }
+
+    public function test_bulan_untuk_semester(): void
+    {
+        $this->assertSame(
+            ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
+            LaporanPekananCalculator::bulanUntukSemester('1')
+        );
+        $this->assertSame(
+            ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'],
+            LaporanPekananCalculator::bulanUntukSemester('2')
+        );
+        $this->assertCount(12, LaporanPekananCalculator::bulanUntukSemester(''));
+    }
+
+    public function test_pekan_untuk_bulan_hanya_mengambil_bulan_tersebut(): void
+    {
+        $daftar = LaporanPekananCalculator::pekanUntukBulan('November', self::TA);
+
+        $this->assertCount(4, $daftar);
+        $this->assertSame([1, 2, 3, 4], $daftar->pluck('pekan_dalam_bulan')->all());
+        $this->assertSame([11], $daftar->pluck('bulan_ke')->unique()->values()->all());
+        $this->assertTrue(LaporanPekananCalculator::pekanUntukBulan('Nopember', self::TA)->isEmpty());
+        $this->assertTrue(LaporanPekananCalculator::pekanUntukBulan('', self::TA)->isEmpty());
+    }
+
     public function test_urutan_sabtu_setiap_bulan_hanya_satu_nomor(): void
     {
         // Tidak boleh ada "Pekan 6" di bulan mana pun.

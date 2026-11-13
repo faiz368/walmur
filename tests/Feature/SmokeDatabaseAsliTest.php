@@ -132,7 +132,8 @@ class SmokeDatabaseAsliTest extends TestCase
         );
 
         $tahfizh = Livewire::test(LaporanPekanan::class)->set('tabAktif', 'tahfizh')->assertOk();
-        $this->assertTampil($tahfizh->html(), 'Menyusul', 'Capaian Tahfizh');
+        $this->assertTampil($tahfizh->html(), 'Capaian Tahfizh');
+        $this->assertStringNotContainsString('Menyusul', $tahfizh->html());
     }
 
     public function test_filter_bulan_september_menampilkan_absensi(): void
@@ -182,12 +183,14 @@ class SmokeDatabaseAsliTest extends TestCase
     {
         $this->masukSebagai(7);
 
+        $santri = User::query()->findOrFail(7)->getSantriProfile();
+
         $html = Livewire::test(LaporanPekanan::class)->assertOk()->html();
 
         // Hanya nama anak sendiri yang boleh muncul.
         $namaLain = Santri::query()
-            ->where('kelas', 'Kelas VIII')
-            ->where('id', '!=', 130)
+            ->where('kelas_id', $santri->kelas_id)
+            ->where('id', '!=', $santri->id)
             ->value('nama_lengkap');
 
         if ($namaLain) {

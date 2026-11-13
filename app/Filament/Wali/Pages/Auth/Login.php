@@ -11,6 +11,7 @@ use Filament\Auth\Pages\Login as BaseLogin;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Schema;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
@@ -32,7 +33,7 @@ class Login extends BaseLogin
 {
     protected string $view = 'filament.wali.pages.login';
 
-    public function getHeading(): string|\Illuminate\Contracts\Support\Htmlable|null
+    public function getHeading(): string|Htmlable|null
     {
         return null;
     }
@@ -98,8 +99,8 @@ class Login extends BaseLogin
         $santri = $user->getSantriProfile();
 
         // Login tetap BERHASIL meski profil tidak ada; wali diarahkan ke layar
-        // ProfilTidakDitemukan supaya bisa menghubungi pihak kesiswaan. 28 dari
-        // 148 akun murid berada dalam kondisi ini.
+        // ProfilTidakDitemukan supaya bisa menghubungi pihak kesiswaan. 2 dari
+        // 148 akun murid berada dalam kondisi ini (nama kembar atau tanpa data).
         AksesLog::catat(
             emailInput: $email,
             user: $user,

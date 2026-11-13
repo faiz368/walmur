@@ -21,6 +21,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $email
  * @property string|null $kelas
  * @property int|null $kelas_id
+ * @property int|null $halaqah_id
+ * @property string|null $target_juz
+ * @property string|null $current_juz
+ * @property string|null $total_surah_hafal
  * @property string|null $angkatan
  * @property string|null $asrama
  * @property string|null $halaqoh
@@ -81,6 +85,21 @@ class Santri extends Model
         return $this->belongsTo(Kelas::class, 'kelas_id');
     }
 
+    public function halaqah(): BelongsTo
+    {
+        return $this->belongsTo(Halaqah::class, 'halaqah_id');
+    }
+
+    public function setorans(): HasMany
+    {
+        return $this->hasMany(Setoran::class, 'santri_id');
+    }
+
+    public function absensiHalaqohs(): HasMany
+    {
+        return $this->hasMany(AbsensiHalaqoh::class, 'santri_id');
+    }
+
     public function absensis(): HasMany
     {
         return $this->hasMany(AbsensiSantri::class, 'santri_id');
@@ -109,5 +128,10 @@ class Santri extends Model
     public function nilaiLaporanPekanans(): HasMany
     {
         return $this->hasMany(NilaiLaporanPekanan::class, 'santri_id');
+    }
+
+    public function laporanPekananKelasDetails(): HasMany
+    {
+        return $this->hasMany(LaporanPekananKelasDetail::class, 'santri_id');
     }
 }

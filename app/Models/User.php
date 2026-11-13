@@ -60,11 +60,15 @@ class User extends Authenticatable implements FilamentUser
      * satu baris `santris`; pencocokan longgar berisiko menampilkan laporan
      * anak yang salah.
      *
-     * Penyelesaian hanya lewat tiga kunci yang deterministik:
+     * Penyelesaian hanya lewat empat kunci yang deterministik:
      *   1. `santris.user_id` — tautan resmi StudentHub;
      *   2. `santris.nis`    — hanya bila cocok persis, bukan LIKE;
      *   3. `santris.email`  — fallback bila user_id & nis belum terisi,
-     *                         aman karena email bersifat unik per santri.
+     *                         aman karena email bersifat unik per santri;
+     *   4. `santris.nama_lengkap` — jaring terakhir untuk database hosting
+     *                         yang `user_id`, `nis`, dan `email` santrinya
+     *                         masih kosong. Nama TIDAK unik, jadi hanya
+     *                         diterima bila cocok persis ke SATU baris.
      *
      * `orderBy('id')` dipakai karena ada akun yang tertaut ke 2 baris
      * santris (user_id=115), sehingga tanpa itu hasilnya tidak deterministik.
@@ -88,7 +92,25 @@ class User extends Authenticatable implements FilamentUser
         }
 
         if (filled($this->email)) {
-            return Santri::where('email', $this->email)->orderBy('id')->first();
+            $santri = Santri::where('email', $this->email)->orderBy('id')->first();
+
+            if ($santri !== null) {
+                return $santri;
+            }
+        }
+
+        // Kunci terakhir: nama lengkap yang dipakai StudentHub sebagai akun
+        // murid. Hanya dipakai bila menghasilkan tepat satu baris, supaya nama
+        // kembar tidak pernah menampilkan laporan anak yang salah.
+        if (filled($this->name)) {
+            $kembar = Santri::where('nama_lengkap', $this->name)
+                ->orderBy('id')
+                ->limit(2)
+                ->get();
+
+            if ($kembar->count() === 1) {
+                return $kembar->first();
+            }
         }
 
         return null;
